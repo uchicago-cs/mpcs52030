@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+<title>OS Virtual Machine &#8212; MPCS 52030 - Operating Systems</title>
+
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootswatch-3.3.6/united/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/chiweb.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Submitting a project" href="submit.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          MPCS 52030 - Operating Systems</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="syllabus.html">Syllabus</a></li>
+                <li><a href="calendar.html">Course Calendar</a></li>
+                <li><a href="projects.html">Projects</a></li>
+            
+            
+              
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+<div class="row">
+    <div class="col-md-12">
+        <ul class="breadcrumb">
+          <li><a href="index.html">MPCS 52030 - Operating Systems</a></li>
+          <li><a href="projects.html">Projects</a></li>
+            <li class="active">OS Virtual Machine</li>
+        </ul>
+    </div>
+</div>
+
+    <div class="col-md-12 content">
+      
+  <div class="section" id="os-virtual-machine">
+<h1>OS Virtual Machine<a class="headerlink" href="#os-virtual-machine" title="Permalink to this headline">¶</a></h1>
+<p>The Pintos project requires a very specific software setup and, while
+you&#8217;re welcome to try to install it on your own computer, we also
+provide an Ubuntu virtual machine (VM) with all the Pintos tools
+installed on it. Please
+note that the only supported environments in this class are the provided
+virtual machine and the CS Linux machines. We may not be able to provide
+support for Pintos on your own computer; if you do develop and run the
+project on your computer, it is your responsibility to test it on
+a supported environment before submitting it, to ensure that there are
+no issues related to differences between your computer and our
+supported environments.</p>
+<p>The provided VM can be run using VirtualBox, a free open-source virtualization
+manager. Please note that the provided VM <strong>does not recognize CNetIDs, nor
+will it have access to your CS home directory</strong>. In general, students tend
+to use the VM in one of two ways:</p>
+<ol class="arabic simple">
+<li>As their exclusive development environment. i.e., the student does all their
+work directly on the VM.</li>
+<li>Just for running and testing Pintos. i.e., the student does all their coding
+on their machine, and then uses the VM just to run and test Pintos. In this
+case, you may want to use VirtualBox&#8217;s <a class="reference external" href="https://www.virtualbox.org/manual/ch04.html#sharedfolders">Shared Folders</a> to easily share
+files between your computer and the VM.</li>
+</ol>
+<p>You can download the VM here:</p>
+<blockquote>
+<div><p><a class="reference external" href="http://mirror.cs.uchicago.edu/techstaff/uchicago-pintos.ova">http://mirror.cs.uchicago.edu/techstaff/uchicago-pintos.ova</a> [4.9 GB]</p>
+<p>MD5: 9c11ffa3d0747d13c3e026d8f7ad5886</p>
+</div></blockquote>
+<p>To get the VM running on Windows or OS X, just follow the instructions provided
+<a class="reference external" href="https://www.classes.cs.uchicago.edu/archive/2016/fall/12100-1/install-guide/index-download.html">on the CS 121 website</a> (that class
+used a similar VM). However, please note the following exceptions:</p>
+<ul class="simple">
+<li>Instead of the <code class="docutils literal"><span class="pre">cs121-aut-15-final.ova</span></code> file referred to in that page, use the
+OVA file you downloaded from the URL above.</li>
+<li>You can download the latest version of VirtualBox (you don&#8217;t need to use the 5.0.4
+version specified in those instructions)</li>
+<li>If installing on OS X, you can skip steps 8 and 9, and all the steps after (and including) step 16.</li>
+<li>If installing on Windows, you can skip steps 7 and 8, and all the steps after (and including) step 14.</li>
+</ul>
+<p>To log into the VM, use username <code class="docutils literal"><span class="pre">student</span></code> and password <code class="docutils literal"><span class="pre">uccs</span></code>).</p>
+<p>Note: to clone your repository inside the VM, you will have to generate SSH keys inside
+the VM and upload your SSH public key to our GitLab server.</p>
+<div class="section" id="common-issues-when-running-the-vm">
+<h2>Common issues when running the VM<a class="headerlink" href="#common-issues-when-running-the-vm" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="enabling-virtualization-extensions">
+<h3>Enabling virtualization extensions<a class="headerlink" href="#enabling-virtualization-extensions" title="Permalink to this headline">¶</a></h3>
+<p>If you try to run the VM and VirtualBox shows a message like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Failed</span> <span class="n">to</span> <span class="nb">open</span> <span class="n">a</span> <span class="n">session</span> <span class="k">for</span> <span class="n">the</span> <span class="n">virtual</span> <span class="n">machine</span> <span class="n">CMSC23300</span><span class="o">.</span>
+
+<span class="n">VT</span><span class="o">-</span><span class="n">x</span> <span class="ow">is</span> <span class="n">disabled</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">BIOS</span> <span class="k">for</span> <span class="nb">all</span> <span class="n">CPU</span> <span class="n">modes</span> <span class="p">(</span><span class="n">VERR_VMX_MSR_ALL_VMX_DISABLED</span><span class="p">)</span><span class="o">.</span>
+<span class="n">Result</span> <span class="n">Code</span><span class="p">:</span>        <span class="n">E_FAIL</span> <span class="p">(</span><span class="mh">0x80004005</span><span class="p">)</span>
+<span class="n">Component</span><span class="p">:</span>  <span class="n">ConsoleWrap</span>
+<span class="n">Interface</span><span class="p">:</span>  <span class="n">IConsole</span> <span class="p">{</span><span class="mi">872</span><span class="n">da645</span><span class="o">-</span><span class="mi">4</span><span class="n">a9b</span><span class="o">-</span><span class="mi">1727</span><span class="o">-</span><span class="n">bee2</span><span class="o">-</span><span class="mi">5585105</span><span class="n">b9eed</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>This means that your computer&#8217;s &#8220;virtualization extensions&#8221; (which enables the CPU to efficiently run virtual machines) have not been activated. You can usually activate them by rebooting your computer and going into the BIOS menu (usually by pressing Esc or Shift at boot; if your computer is nice, it will probably tell you exactly what key to press to interrupt the computer&#8217;s bootup and to go into the BIOS menu)</p>
+<p>Once there, you&#8217;ll have to look around for the option to turn on &#8220;VT-X&#8221; or &#8220;VMX&#8221; or some variation of the term &#8220;Virtualization Extensions&#8221;. If you&#8217;re unsure on how to do any of this, try Googling for your computer&#8217;s brand/model along with &#8220;BIOS menu&#8221; or &#8220;virtualization&#8221;. This will likely turn up the appropriate instructions for your machine.</p>
+</div>
+<div class="section" id="corrupted-download">
+<h3>Corrupted download<a class="headerlink" href="#corrupted-download" title="Permalink to this headline">¶</a></h3>
+<p>If VirtualBox complains about trying to import or launch a corrupted VM, make sure the OVA file
+you downloaded was correctly downloaded. You can check the integrity of the file by running
+the following:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">md5sum</span> <span class="n">cs233</span><span class="o">-</span><span class="n">win</span><span class="o">-</span><span class="mf">17.</span><span class="n">ova</span>
+</pre></div>
+</div>
+<p>The resulting MD5 hash should match the one shown at the top of this page. If it doesn&#8217;t,
+try re-downloading the file. We recommend using <code class="docutils literal"><span class="pre">wget</span></code> or <code class="docutils literal"><span class="pre">curl</span></code>, which will usually
+deal better with resuming an interrupted download.</p>
+</div>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Borja Sotomayor.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
