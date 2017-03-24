@@ -39,6 +39,10 @@ All project deadlines are at 8pm (Chicago local time) on the specified date.
 +      +-----------------------+---------------------------------------+-------+---------+-------------+
 |      | Thursday, June 1      |                                       |       |         | Project 3   |
 +------+-----------------------+---------------------------------------+-------+---------+-------------+
+| Exam | Wednesday, June 7     | **Final exam** (6pm-8pm)              |       |         |             |
++------+-----------------------+---------------------------------------+-------+---------+-------------+
+
+Note: An early final exam will be scheduled for graduating students during 10th week.
 
 MOS: Modern Operating Systems
 

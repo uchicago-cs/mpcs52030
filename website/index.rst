@@ -8,10 +8,13 @@ Course Staff
 
 `Borja Sotomayor <http://people.cs.uchicago.edu/~borja/>`_ (borja@cs.uchicago.edu)
 
-*Office*: Eckhart 120-B
+*Office*: Young 308-B and Eckhart 120-B
 
 *Office hours*: 
 
+- Mondays 4-5pm in Young 302 (open Q&A format)
+- Mondays 6pm-7pm in Young 308-B
+- Wednesdays after class in Eckhart 120-B
 
 
 Course Description

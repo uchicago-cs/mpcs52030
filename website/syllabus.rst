@@ -91,6 +91,10 @@ system (MINIX). We don't recommend buying this book unless you expect to go much
 hole of OS implementations; however, if you can get a copy (or check one out from the library), it can provide
 detailed insights on how certain OS features are implemented in a real OS.
 
+Finally, the following free textbook can also be a valuable resource:
+
+- `Operating Systems: Three Easy Pieces <http://pages.cs.wisc.edu/~remzi/OSTEP/>`_, Remzi H. Arpaci-Dusseau and Andrea C. Arpaci-Dusseau. 2015.
+
 
 Grading
 ~~~~~~~
