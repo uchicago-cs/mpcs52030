@@ -1,0 +1,59 @@
+Project 0
+---------
+
+Project 0 will involve doing a subset of Project 1 (Threads) to ensure you can get a sense for the difficulty of the Pintos project before completing Project 1 (which cannot be feasibly completed and graded before the Week 3 Add/Drop deadline).
+
+The goal of Project 0 is to ensure you have gotten to the point where you are comfortable compiling the Pintos code, running it, as well as running the tests (including individual tests). It will also require that you start familiarizing yourself with the data structures in the Pintos kernel.
+
+To do this, you are only required to implement the `Alarm Clock <https://uchicago-cs.github.io/pintos/pintos_2.html#SEC25>`_ part of Project 1. However, the Alarm Clock requires using a semaphore but we will not have covered semaphores in depth before Project 0 is due. So, we will tell you the exact semaphore code you need to include:
+
+* You will need to add the following field to ``struct thread`` in ``thread.h``::
+
+    struct semaphore timer_sema;
+
+* You will need to include the following call in ``init_thread`` in ``thread.c``::
+
+    sema_init(&t->timer_sema, 0);
+
+* Suppose variable ``cur`` contains a pointer to the currently running thread (a pointer to ``struct thread``, as returned by ``thread_current()``). To put that thread to sleep, do the following::
+
+    sema_down (&cur->timer_sema);
+
+  Suppose variable ``th`` contains a pointer to a ``struct thread`` for a thread that was previously put to sleep as described above. To wake up that thread, do the following::
+
+    sema_up (&th->timer_sema);
+
+With the above, you should be able to implement Project 0 just using the Pintos documentation, and using what you will learn in the Processes and Threads part of the first lecture.
+
+You will also have to avoid certain race conditions, but this will not require using semaphores, locks, etc. As stated in the Pintos documentation "the only class of problem best solved by disabling interrupts is coordinating data shared between a kernel thread and an interrupt handler" which is precisely what happens when implementing the Alarm Clock. This, in turn, will require that you understand interrupts and interrupt handlers.
+
+Grading
+~~~~~~~
+
+The grading of Project 0 will be a bit different from the remaining projects (which split the grading between the results of the tests and a Design Document). Project 0 will be graded out of 100 points, where 40 points will be based on the result of the following tests:
+
+- alarm-single (10 points)
+- alarm-multiple (10 points)
+- alarm-simultaneous (10 points)
+- alarm-zero (5 points)
+- alarm-negative (5 points)
+
+20 points will be based on whether you actually avoid busy-waiting in your implementation. Take into account that the tests will pass on an unmodified version of Pintos (because Pintos includes an implementation of the alarm clock, but one that uses busy-waiting). If you submit a version of the code that passes the tests, but doesn't meet the requirements specified in the Pintos documentation, you will be penalized in this portion of the grade.
+
+The remaining 40 points will be based on a small Design Document which you must place in ``src/threads/DESIGNDOC``, and which should just contain the answer to the following questions (10 points each):
+
+#. Briefly describe what happens in a call to timer_sleep(), including the effects of the timer interrupt handler.
+
+#. Why is your implementation better than using busy-waiting?
+
+#. How are race conditions avoided when multiple threads call timer_sleep() simultaneously?
+
+#. How are race conditions avoided when a timer interrupt occurs during a call to timer_sleep()?
+
+Moving on to Project 1
+~~~~~~~~~~~~~~~~~~~~~~
+
+The Alarm Clock is independent of the Priority Scheduling part of Project 1. So, **you should not wait until Project 0 is graded to start working on Project 1**. You should start working on Priority Scheduling as soon as you're done with Project 0. 
+
+Note: The ``alarm-priority`` test does require Priority Scheduling to be implemented, so you will have to make some minor modifications to your Project 0 code once you start working on Priority Scheduling. The remaining tests are independent of your Alarm Clock implementation (and you can always go back to Pintos's original busy-waiting implementation if you'd like to ensure that bugs in your Alarm Clock are not interfering with the rest of the kernel).
+

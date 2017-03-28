@@ -36,7 +36,7 @@ Project 0: Threads Warmup
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Project 0 will be a subset of Project 1 (Threads) to help get a feel for the project before 
-the course drop deadline. The exact contents of Project 0 are still TBD.
+the course drop deadline. Please see `Project 0 <p0.html>`_ for more details.
 
 Project 1: Threads
 ~~~~~~~~~~~~~~~~~~

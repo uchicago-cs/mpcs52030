@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+<title>Project 0 &#8212; MPCS 52030 - Operating Systems</title>
+
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootswatch-3.3.6/united/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/chiweb.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          MPCS 52030 - Operating Systems</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="syllabus.html">Syllabus</a></li>
+                <li><a href="calendar.html">Course Calendar</a></li>
+                <li><a href="projects.html">Projects</a></li>
+            
+            
+              
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+<div class="row">
+    <div class="col-md-12">
+        <ul class="breadcrumb">
+          <li><a href="index.html">MPCS 52030 - Operating Systems</a></li>
+            <li class="active">Project 0</li>
+        </ul>
+    </div>
+</div>
+
+    <div class="col-md-12 content">
+      
+  <div class="section" id="project-0">
+<h1>Project 0<a class="headerlink" href="#project-0" title="Permalink to this headline">¶</a></h1>
+<p>Project 0 will involve doing a subset of Project 1 (Threads) to ensure you can get a sense for the difficulty of the Pintos project before completing Project 1 (which cannot be feasibly completed and graded before the Week 3 Add/Drop deadline).</p>
+<p>The goal of Project 0 is to ensure you have gotten to the point where you are comfortable compiling the Pintos code, running it, as well as running the tests (including individual tests). It will also require that you start familiarizing yourself with the data structures in the Pintos kernel.</p>
+<p>To do this, you are only required to implement the <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_2.html#SEC25">Alarm Clock</a> part of Project 1. However, the Alarm Clock requires using a semaphore but we will not have covered semaphores in depth before Project 0 is due. So, we will tell you the exact semaphore code you need to include:</p>
+<ul>
+<li><p class="first">You will need to add the following field to <code class="docutils literal"><span class="pre">struct</span> <span class="pre">thread</span></code> in <code class="docutils literal"><span class="pre">thread.h</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">semaphore</span> <span class="n">timer_sema</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">You will need to include the following call in <code class="docutils literal"><span class="pre">init_thread</span></code> in <code class="docutils literal"><span class="pre">thread.c</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sema_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">t</span><span class="o">-&gt;</span><span class="n">timer_sema</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Suppose variable <code class="docutils literal"><span class="pre">cur</span></code> contains a pointer to the currently running thread (a pointer to <code class="docutils literal"><span class="pre">struct</span> <span class="pre">thread</span></code>, as returned by <code class="docutils literal"><span class="pre">thread_current()</span></code>). To put that thread to sleep, do the following:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sema_down</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">cur</span><span class="o">-&gt;</span><span class="n">timer_sema</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Suppose variable <code class="docutils literal"><span class="pre">th</span></code> contains a pointer to a <code class="docutils literal"><span class="pre">struct</span> <span class="pre">thread</span></code> for a thread that was previously put to sleep as described above. To wake up that thread, do the following:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sema_up</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">th</span><span class="o">-&gt;</span><span class="n">timer_sema</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>With the above, you should be able to implement Project 0 just using the Pintos documentation, and using what you will learn in the Processes and Threads part of the first lecture.</p>
+<p>You will also have to avoid certain race conditions, but this will not require using semaphores, locks, etc. As stated in the Pintos documentation &#8220;the only class of problem best solved by disabling interrupts is coordinating data shared between a kernel thread and an interrupt handler&#8221; which is precisely what happens when implementing the Alarm Clock. This, in turn, will require that you understand interrupts and interrupt handlers.</p>
+<div class="section" id="grading">
+<h2>Grading<a class="headerlink" href="#grading" title="Permalink to this headline">¶</a></h2>
+<p>The grading of Project 0 will be a bit different from the remaining projects (which split the grading between the results of the tests and a Design Document). Project 0 will be graded out of 100 points, where 40 points will be based on the result of the following tests:</p>
+<ul class="simple">
+<li>alarm-single (10 points)</li>
+<li>alarm-multiple (10 points)</li>
+<li>alarm-simultaneous (10 points)</li>
+<li>alarm-zero (5 points)</li>
+<li>alarm-negative (5 points)</li>
+</ul>
+<p>20 points will be based on whether you actually avoid busy-waiting in your implementation. Take into account that the tests will pass on an unmodified version of Pintos (because Pintos includes an implementation of the alarm clock, but one that uses busy-waiting). If you submit a version of the code that passes the tests, but doesn&#8217;t meet the requirements specified in the Pintos documentation, you will be penalized in this portion of the grade.</p>
+<p>The remaining 40 points will be based on a small Design Document which you must place in <code class="docutils literal"><span class="pre">src/threads/DESIGNDOC</span></code>, and which should just contain the answer to the following questions (10 points each):</p>
+<ol class="arabic simple">
+<li>Briefly describe what happens in a call to timer_sleep(), including the effects of the timer interrupt handler.</li>
+<li>Why is your implementation better than using busy-waiting?</li>
+<li>How are race conditions avoided when multiple threads call timer_sleep() simultaneously?</li>
+<li>How are race conditions avoided when a timer interrupt occurs during a call to timer_sleep()?</li>
+</ol>
+</div>
+<div class="section" id="moving-on-to-project-1">
+<h2>Moving on to Project 1<a class="headerlink" href="#moving-on-to-project-1" title="Permalink to this headline">¶</a></h2>
+<p>The Alarm Clock is independent of the Priority Scheduling part of Project 1. So, <strong>you should not wait until Project 0 is graded to start working on Project 1</strong>. You should start working on Priority Scheduling as soon as you&#8217;re done with Project 0.</p>
+<p>Note: The <code class="docutils literal"><span class="pre">alarm-priority</span></code> test does require Priority Scheduling to be implemented, so you will have to make some minor modifications to your Project 0 code once you start working on Priority Scheduling. The remaining tests are independent of your Alarm Clock implementation (and you can always go back to Pintos&#8217;s original busy-waiting implementation if you&#8217;d like to ensure that bugs in your Alarm Clock are not interfering with the rest of the kernel).</p>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Borja Sotomayor.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
