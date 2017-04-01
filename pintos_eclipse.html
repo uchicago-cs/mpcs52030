@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+<title>Debugging Pintos in Eclipse &#8212; MPCS 52030 - Operating Systems</title>
+
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootswatch-3.3.6/united/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/chiweb.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          MPCS 52030 - Operating Systems</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="syllabus.html">Syllabus</a></li>
+                <li><a href="calendar.html">Course Calendar</a></li>
+                <li><a href="projects.html">Projects</a></li>
+                <li><a href="resources.html">Additional Resources</a></li>
+            
+            
+              
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+<div class="row">
+    <div class="col-md-12">
+        <ul class="breadcrumb">
+          <li><a href="index.html">MPCS 52030 - Operating Systems</a></li>
+            <li class="active">Debugging Pintos in Eclipse</li>
+        </ul>
+    </div>
+</div>
+
+    <div class="col-md-12 content">
+      
+  <div class="section" id="debugging-pintos-in-eclipse">
+<h1>Debugging Pintos in Eclipse<a class="headerlink" href="#debugging-pintos-in-eclipse" title="Permalink to this headline">¶</a></h1>
+<p>Pintos provides tools and instructions to debug the Pintos kernel
+<a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_10.html#SEC151">using GDB</a>.
+However, if you are accustomed to using an IDE to write and debug code,
+you can usually &#8220;connect&#8221; your IDE to GDB so you can debug from your
+IDE of choice, instead of from the command-line.</p>
+<p>The instructions in this page refer specifically to how to debug
+Pintos code from Eclipse. If you use a different IDE, that IDE should
+provide a similar mechanism for connecting to GDB (please refer
+to the IDE&#8217;s documentation; we may be able to help you in office hours
+too, but please note that we&#8217;re mostly familiar with Eclipse).</p>
+<p>Before getting started, make sure that you&#8217;ve installed the
+<a class="reference external" href="https://eclipse.org/cdt/">C/C++ Development Tooling (CDT)</a>
+for Eclipse. It is already installed on the CS machines,
+and most Linux distributions already include it as a package
+that you can install.</p>
+<p>The following instructions were written using Eclipse 3.8. If you
+have a different version of Eclipse, some of the option names may
+be different.</p>
+<div class="section" id="importing-the-pintos-code">
+<h2>Importing the Pintos code<a class="headerlink" href="#importing-the-pintos-code" title="Permalink to this headline">¶</a></h2>
+<p>To create an Eclipse project with the Pintos code, do the following</p>
+<ul class="simple">
+<li>Go to <strong>File</strong> -&gt; <strong>Import</strong> -&gt; <strong>C/C++</strong> -&gt; <strong>Existing Code as Makefile Project</strong></li>
+<li>On the next screen, set the following options:<ul>
+<li>Project Name: <code class="docutils literal"><span class="pre">pintos</span></code></li>
+<li>Existing Code Location: The directory containing the clone of
+your Git repository (this is the directory containing
+the <code class="docutils literal"><span class="pre">src</span></code>, <code class="docutils literal"><span class="pre">tests</span></code>, <code class="docutils literal"><span class="pre">specs</span></code> directory)</li>
+<li>Languages: Leave &#8220;C&#8221; checked. Uncheck C++.</li>
+<li>Toolchain for Indexer Settings: Select &#8220;Cross GCC&#8221;</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="creating-the-build-configurations">
+<h2>Creating the Build Configurations<a class="headerlink" href="#creating-the-build-configurations" title="Permalink to this headline">¶</a></h2>
+<p>Note: These steps are only necessary if you want to be able to build
+the Pintos code from Eclipse. If you are ok with just manually running
+<code class="docutils literal"><span class="pre">make</span></code> from the command-line, you can skip these steps.</p>
+<ul>
+<li><p class="first">Go to <strong>Project</strong> -&gt; <strong>Properties</strong> -&gt; <strong>C/C++ Build</strong></p>
+</li>
+<li><p class="first">[Repeat this step three times, once per project]
+Click on &#8220;Manage Configurations...&#8221; and then &#8220;New...&#8221;. In the
+&#8220;Create New Configuration&#8221; window, set the &#8220;Name:&#8221; field to</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">pintos-p0+p1</span></code> for Projects 0 and 1</li>
+<li><code class="docutils literal"><span class="pre">pintos-p2</span></code> for Project 2</li>
+<li><code class="docutils literal"><span class="pre">pintos-p3</span></code> for Project 3</li>
+</ul>
+<p>You can leave the &#8220;Description&#8221; field blank. You do not need to
+modify any other field.</p>
+</li>
+<li><p class="first">Once you&#8217;re back in the &#8220;C/C++ Build&#8221; configuration window, select
+the build configuration in the &#8220;Configuration&#8221; pull-down list and
+set the &#8220;Build location&#8221; field to the following value:</p>
+<ul class="simple">
+<li>For <code class="docutils literal"><span class="pre">pintos-p0+p1</span></code>: <code class="docutils literal"><span class="pre">${workspace_loc:/pintos/src/threads}</span></code></li>
+<li>For <code class="docutils literal"><span class="pre">pintos-p2</span></code>: <code class="docutils literal"><span class="pre">${workspace_loc:/pintos/src/userprog}</span></code></li>
+<li>For <code class="docutils literal"><span class="pre">pintos-p3</span></code>: <code class="docutils literal"><span class="pre">${workspace_loc:/pintos/src/vm}</span></code></li>
+</ul>
+</li>
+</ul>
+<p>Finally, set the active build configuration to correspond to the project
+you&#8217;re working on. For example, while working on Project 2, make sure
+that your active build configuration is <code class="docutils literal"><span class="pre">pintos-p2</span></code>. You can do this
+one of two ways:</p>
+<ol class="arabic simple">
+<li>By going to <strong>Project</strong> -&gt; <strong>Build Configurations...</strong> -&gt; <strong>Set Active...</strong>
+and selecting the appropriate build configuration.</li>
+<li>By clicking on the pull-down list next to the hammer icon in the toolbar,
+and selecting the appropriate build configuration.</li>
+</ol>
+<p>Similarly, to build Pintos you can do one of the following:</p>
+<ol class="arabic simple">
+<li>By going to <strong>Project</strong> -&gt; <strong>Build All</strong></li>
+<li>By clicking the hammer icon in the toolbar.</li>
+<li>By pressing Control+B</li>
+</ol>
+<p><strong>Don&#8217;t forget to switch build configurations when you start working on a new project!</strong></p>
+</div>
+<div class="section" id="creating-the-debug-configurations">
+<h2>Creating the Debug configurations<a class="headerlink" href="#creating-the-debug-configurations" title="Permalink to this headline">¶</a></h2>
+<p>You will need to repeat these steps once for each project:</p>
+<ol class="arabic">
+<li><p class="first">After building the project, find the <code class="docutils literal"><span class="pre">kernel.o</span></code> file in the Project Explorer (the file
+browser on the left side of Eclipse):</p>
+<ul class="simple">
+<li>For <code class="docutils literal"><span class="pre">pintos-p0+p1</span></code>: <code class="docutils literal"><span class="pre">src/threads/build/kernel.o</span></code></li>
+<li>For <code class="docutils literal"><span class="pre">pintos-p2</span></code>: <code class="docutils literal"><span class="pre">src/userprogs/build/kernel.o</span></code></li>
+<li>For <code class="docutils literal"><span class="pre">pintos-p3</span></code>: <code class="docutils literal"><span class="pre">src/vm/build/kernel.o</span></code></li>
+</ul>
+</li>
+<li><p class="first">Right-click on the file and go to <strong>Debug As</strong> -&gt; <strong>Debug Configurations...</strong></p>
+</li>
+<li><p class="first">In the Debug Configurations window, double-click on &#8220;C/C++ Remote Application&#8221;.
+This will create a new debug configuration, with the &#8220;C/C++ Application&#8221; field
+pre-filled. Change the name of the configuration to <code class="docutils literal"><span class="pre">pintos-p0+p1</span></code>,
+<code class="docutils literal"><span class="pre">pintos-p2</span></code>, or <code class="docutils literal"><span class="pre">pintos-p3</span></code></p>
+</li>
+<li><p class="first">If you created build configurations as described above then, under
+&#8220;Build (if required) before launching&#8221;, uncheck &#8220;Select configuration using &#8216;C/C++ Application&#8217;&#8221;.
+The &#8220;Build configuration&#8221; pull-down list will become active; select the appropriate
+build configuration. Check &#8220;Enable auto build&#8221;</p>
+</li>
+<li><p class="first">In the &#8220;Debugger - Main&#8221; tab, set the &#8220;GDB debugger&#8221; option to:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">gdb</span> <span class="o">-</span><span class="n">x</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="n">pintos</span><span class="o">/</span><span class="n">share</span><span class="o">/</span><span class="n">gdb</span><span class="o">-</span><span class="n">macros</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">In the &#8220;Debugger - Connection&#8221; tab, set the &#8220;Port number&#8221; option to <code class="docutils literal"><span class="pre">1234</span></code> (the type
+should already be set to TCP, and the hostname to <code class="docutils literal"><span class="pre">localhost</span></code>)</p>
+</li>
+</ol>
+</div>
+<div class="section" id="debugging">
+<h2>Debugging<a class="headerlink" href="#debugging" title="Permalink to this headline">¶</a></h2>
+<p>Once you have completed the above steps, you should run the <code class="docutils literal"><span class="pre">pintos</span></code> command as usual
+from the command line, but with the <code class="docutils literal"><span class="pre">--gdb</span></code> option. For example, to run a test from
+Project 1, you would do something like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pintos</span> <span class="o">-</span><span class="n">v</span> <span class="o">--</span><span class="n">gdb</span> <span class="o">--</span> <span class="n">run</span> <span class="n">alarm</span><span class="o">-</span><span class="n">multiple</span>
+</pre></div>
+</div>
+<p>And to run a user program in Projects 2 and 3, you would do something like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pintos</span> <span class="o">--</span><span class="n">gdb</span> <span class="o">-</span><span class="n">v</span> <span class="o">--</span><span class="n">filesys</span><span class="o">-</span><span class="n">size</span><span class="o">=</span><span class="mi">2</span> <span class="o">-</span><span class="n">p</span> <span class="o">../../</span><span class="n">examples</span><span class="o">/</span><span class="n">echo</span> <span class="o">-</span><span class="n">a</span> <span class="n">echo</span> <span class="o">--</span> <span class="o">-</span><span class="n">f</span> <span class="o">-</span><span class="n">q</span> <span class="n">run</span> <span class="s1">&#39;echo x&#39;</span>
+</pre></div>
+</div>
+<p>You will notice that Pintos seems to start up, but then stops at the following message:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Waiting</span> <span class="k">for</span> <span class="n">gdb</span> <span class="n">connection</span> <span class="n">on</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">1234</span>
+</pre></div>
+</div>
+<p>Now, go to Eclipse, click on the pull-down list next to the bug icon in the toolbar,
+and select the appropriate debug configuration.</p>
+<p>You may be prompted to switch to the &#8220;Debug perspective&#8221;. Answer &#8220;Yes&#8221; (and check
+&#8220;Remember my decision&#8221;, since there&#8217;s no reason to debug in anything other
+than the Debug perspective).</p>
+<p>Once you are in the Debug perspective, you can now debug Pintos like you would a normal
+C program. Note that you can also run the Pintos-specific macros by typing them
+directly into the Console tab.</p>
+<p>Please note the following:</p>
+<ul class="simple">
+<li>By default, the debugger will breakpoint at the start of main(). Instead of
+stepping through main(), we suggest you set breakpoints in the part of the
+code you want to debug, and resume execution after the main() breakpoint.</li>
+<li>You can ignore the message <code class="docutils literal"><span class="pre">qTStatus:</span> <span class="pre">Target</span> <span class="pre">returns</span> <span class="pre">error</span> <span class="pre">code</span> <span class="pre">'ff'.</span></code></li>
+</ul>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Borja Sotomayor.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
