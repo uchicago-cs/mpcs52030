@@ -106,6 +106,7 @@ html_theme_options = {
         ("Syllabus", "syllabus"),
         ("Course Calendar", "calendar"),
         ("Projects", "projects"),
+        ("Additional Resources", "resources"),
     ],
 
     # Render the next and previous page links in navbar. (Default: true)
