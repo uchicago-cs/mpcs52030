@@ -13,6 +13,7 @@ OS Implementation
 * `OSDev.org <http://wiki.osdev.org/>`_: A very detailed wiki with reference documentation for OS kernel implementors.
   This wiki is a great resource if you need more detailed explanations on how the OS interacts with the x86 architecture,
   as well as many other aspects of implementing an OS.
+* Writing a boot loader in Assembly and C: `Part 1 <https://www.codeproject.com/Articles/664165/Writing-a-boot-loader-in-Assembly-and-C-Part>`_ and `Part 2 <https://www.codeproject.com/Articles/668422/Writing-a-boot-loader-in-Assembly-and-C-Part>`_ (found by David Ramsey, OS'2017)  
 * `Anatomy of a Program in Memory <http://duartes.org/gustavo/blog/post/anatomy-of-a-program-in-memory/>`_: Detailed explanation
   of how a program is laid out in memory (in 32-bit processors)
 
