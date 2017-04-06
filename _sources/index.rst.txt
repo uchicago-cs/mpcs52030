@@ -16,6 +16,18 @@ Course Staff
 - Mondays 6pm-7pm in Young 308-B
 - Wednesdays after class in Eckhart 120-B
 
+**TA**
+
+Yan Liu
+
+*Office hours*:
+
+- Tuesdays 4pm-5:30pm in Eckhart 131
+- Thursdays 4pm-5:30pm in Eckhart 131
+
+Outside of office hours, please do not contact Yan directly with questions; always ask your questions on Piazza.
+
+If the above office hours do not work with your schedule, please contact the instructor to make an appointment at an alternate time.
 
 Course Description
 ~~~~~~~~~~~~~~~~~~
