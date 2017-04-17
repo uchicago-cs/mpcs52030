@@ -46,6 +46,8 @@ See `Project 1: Threads <https://uchicago-cs.github.io/pintos/pintos_2.html>`_ i
 Notes:
 
 - You do not have to implement the "Advanced Scheduler" section of this project.
+- Make sure you use :download:`our design document template <threads.tmpl>` (not
+  the one linked from the Pintos documentation).
 
 Project 2: User Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~
