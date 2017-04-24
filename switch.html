@@ -1,0 +1,444 @@
+
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+<title>How does thread/process switching work in Pintos? &#8212; MPCS 52030 - Operating Systems</title>
+
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootswatch-3.3.6/united/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/chiweb.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          MPCS 52030 - Operating Systems</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="syllabus.html">Syllabus</a></li>
+                <li><a href="calendar.html">Course Calendar</a></li>
+                <li><a href="projects.html">Projects</a></li>
+                <li><a href="resources.html">Additional Resources</a></li>
+            
+            
+              
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+<div class="row">
+    <div class="col-md-12">
+        <ul class="breadcrumb">
+          <li><a href="index.html">MPCS 52030 - Operating Systems</a></li>
+            <li class="active">How does thread/process switching work in Pintos?</li>
+        </ul>
+    </div>
+</div>
+
+    <div class="col-md-12 content">
+      
+  <div class="section" id="how-does-thread-process-switching-work-in-pintos">
+<h1>How does thread/process switching work in Pintos?<a class="headerlink" href="#how-does-thread-process-switching-work-in-pintos" title="Permalink to this headline">¶</a></h1>
+<p>We&#8217;ll start with kernel threads, and then move on to processes.</p>
+<div class="section" id="threads-in-memory">
+<h2>Threads in memory<a class="headerlink" href="#threads-in-memory" title="Permalink to this headline">¶</a></h2>
+<p>All the information for a thread is contained in a single page
+of memory (4 KB). The struct thread is stored at the bottom of the
+page, and the stack grows from the top bottom.</p>
+<p>See <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_6.html#SEC97">https://uchicago-cs.github.io/pintos/pintos_6.html#SEC97</a></p>
+<p>Suppose we have a thread that runs a function called <code class="docutils literal"><span class="pre">thread_one()</span></code>
+(i.e., when we called <code class="docutils literal"><span class="pre">thread_create</span></code>, we passed <code class="docutils literal"><span class="pre">thread_one</span></code>
+as the <code class="docutils literal"><span class="pre">function</span></code> parameter). Let&#8217;s skip how the thread is created
+for now.</p>
+<p>However, note how the first entry in the stack isn&#8217;t <code class="docutils literal"><span class="pre">thread_one</span></code>.
+It&#8217;s <code class="docutils literal"><span class="pre">kernel_thread</span></code>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">/*</span> <span class="n">Function</span> <span class="n">used</span> <span class="k">as</span> <span class="n">the</span> <span class="n">basis</span> <span class="k">for</span> <span class="n">a</span> <span class="n">kernel</span> <span class="n">thread</span><span class="o">.</span> <span class="o">*/</span>
+<span class="n">static</span> <span class="n">void</span>
+<span class="n">kernel_thread</span> <span class="p">(</span><span class="n">thread_func</span> <span class="o">*</span><span class="n">function</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">aux</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">ASSERT</span> <span class="p">(</span><span class="n">function</span> <span class="o">!=</span> <span class="n">NULL</span><span class="p">);</span>
+
+  <span class="n">intr_enable</span> <span class="p">();</span>       <span class="o">/*</span> <span class="n">The</span> <span class="n">scheduler</span> <span class="n">runs</span> <span class="k">with</span> <span class="n">interrupts</span> <span class="n">off</span><span class="o">.</span> <span class="o">*/</span>
+  <span class="n">function</span> <span class="p">(</span><span class="n">aux</span><span class="p">);</span>       <span class="o">/*</span> <span class="n">Execute</span> <span class="n">the</span> <span class="n">thread</span> <span class="n">function</span><span class="o">.</span> <span class="o">*/</span>
+  <span class="n">thread_exit</span> <span class="p">();</span>       <span class="o">/*</span> <span class="n">If</span> <span class="n">function</span><span class="p">()</span> <span class="n">returns</span><span class="p">,</span> <span class="n">kill</span> <span class="n">the</span> <span class="n">thread</span><span class="o">.</span> <span class="o">*/</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>That <code class="docutils literal"><span class="pre">thread_one</span></code> function may itself call other functions,
+which may call other functions, etc. The information about
+each function call is added to the stack (see <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_3.html#SEC50">https://uchicago-cs.github.io/pintos/pintos_3.html#SEC50</a>)</p>
+<p>Let&#8217;s say the thread is in the middle of running function
+<code class="docutils literal"><span class="pre">foobar()</span></code>. The thread&#8217;s memory may look like this:</p>
+<img alt="_images/stack1.png" src="_images/stack1.png" />
+<p>ESP: CPU stack pointer</p>
+</div>
+<div class="section" id="what-happens-during-an-interrupt">
+<h2>What happens during an interrupt<a class="headerlink" href="#what-happens-during-an-interrupt" title="Permalink to this headline">¶</a></h2>
+<p>When an interrupt happens, the CPU automatically pushes
+the following values in the stack:</p>
+<ul class="simple">
+<li>SS: Stack Segment Selector</li>
+<li>ESP: Stack pointer</li>
+<li>EFLAGS: CPU flags</li>
+<li>CS: Code Segment Selector</li>
+<li>EIP: Instruction Pointer (Program Counter)</li>
+</ul>
+<p>We can ignore selectors for now.</p>
+<p>It then jumps to the memory address specified for the
+interrupts in the IDT. In Pintos, the IDT is set up
+to always call intr_entry</p>
+<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L5-L39">https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L5-L39</a></p>
+<p>This code pushed additional data into the stack
+(mostly CPU registers) and sets up a call to intr_handler
+(<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.c#L345">https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.c#L345</a>)
+which has a single parameter: a pointer to a
+<code class="docutils literal"><span class="pre">struct</span> <span class="pre">intr_frame</span></code> (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.h#L19-L56">https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.h#L19-L56</a>). This struct provides convenient
+access to the interrupt stack frame.</p>
+<p>So, after an interrupt, the stack looks like this:</p>
+<img alt="_images/stack2.png" src="_images/stack2.png" />
+<p>And if we&#8217;re processing a timer interrupts, intr_handler would
+call timer_interrupt, which in turn would call thread_tick.</p>
+<p>If we&#8217;re not switching to another thread, these functions would
+return. When intr_handler returns, it goes back to the code
+in intr-stubs.S and &#8220;falls through&#8221; to intr_exit, which restores
+the saved values in the stack (popal, popl) and discards
+the Pintos-saved information. We&#8217;re left with only the OS-saved
+information. Then in calls iret, which restores the eip and esp
+we saved.</p>
+</div>
+<div class="section" id="what-happens-during-a-thread-switch">
+<h2>What happens during a thread switch<a class="headerlink" href="#what-happens-during-a-thread-switch" title="Permalink to this headline">¶</a></h2>
+<p>If a thread has used up its timeslice, thread_tick will call
+intr_yield_on_return. <em>This doesn&#8217;t yield at that point</em>. Instead,
+it modifies a flag to let the interrupt handler that, before
+returning from the interrupt, it should switch to a different thread.</p>
+<p>So, after thread_tick and timer_interrupt return, intr_handler will
+call thread_yield, which calls schedule. schedule picks the next
+thread to run and calls switch_threads with two parameters: cur
+(the current thread) and next (the next thread to run)</p>
+<img alt="_images/stack3.png" src="_images/stack3.png" />
+<p>switch_threads is implemented in switch.S</p>
+<p>The key to understanding switch_threads is to first understand that,
+if we&#8217;re switching to another thread, that other thread must&#8217;ve also
+been running switch_threads when it was preempted. In fact, a thread
+that voluntarily or involuntarily yielded the CPU will always have
+a stack that looks like one of the following:</p>
+<img alt="_images/stack4.png" src="_images/stack4.png" />
+<p>Intuition behind switch_threads: esp is the CPU stack pointer. It currently
+points to the stack of the currently running thread, but if we switch
+it to point to the other thread, we will have yielded control to that thread.</p>
+<p>Let&#8217;s take a closer look at what happens inside switch_threads.</p>
+<p>Right after calling switch_threads, the bottom of the stack will
+look like this:</p>
+<img alt="_images/stack5.png" src="_images/stack5.png" />
+<p>First, we need to save some registers (this is just a requirement
+of the x86 architecture):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pushl</span> <span class="o">%</span><span class="n">ebx</span>
+<span class="n">pushl</span> <span class="o">%</span><span class="n">ebp</span>
+<span class="n">pushl</span> <span class="o">%</span><span class="n">esi</span>
+<span class="n">pushl</span> <span class="o">%</span><span class="n">edi</span>
+</pre></div>
+</div>
+<p>And our stack will now look like this:</p>
+<img alt="_images/stack6.png" src="_images/stack6.png" />
+<p>Note: offsets from esp</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">globl</span> <span class="n">thread_stack_ofs</span>
+        <span class="n">mov</span> <span class="n">thread_stack_ofs</span><span class="p">,</span> <span class="o">%</span><span class="n">edx</span>
+</pre></div>
+</div>
+<p>threads/thread.c:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">uint32_t</span> <span class="n">thread_stack_ofs</span> <span class="o">=</span> <span class="n">offsetof</span> <span class="p">(</span><span class="n">struct</span> <span class="n">thread</span><span class="p">,</span> <span class="n">stack</span><span class="p">);</span>
+</pre></div>
+</div>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">thread</span>
+  <span class="p">{</span>
+    <span class="o">/*</span> <span class="n">Owned</span> <span class="n">by</span> <span class="n">thread</span><span class="o">.</span><span class="n">c</span><span class="o">.</span> <span class="o">*/</span>
+    <span class="n">tid_t</span> <span class="n">tid</span><span class="p">;</span>                          <span class="o">/*</span> <span class="n">Thread</span> <span class="n">identifier</span><span class="o">.</span> <span class="o">*/</span>
+    <span class="n">enum</span> <span class="n">thread_status</span> <span class="n">status</span><span class="p">;</span>          <span class="o">/*</span> <span class="n">Thread</span> <span class="n">state</span><span class="o">.</span> <span class="o">*/</span>
+    <span class="n">char</span> <span class="n">name</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>                      <span class="o">/*</span> <span class="n">Name</span> <span class="p">(</span><span class="k">for</span> <span class="n">debugging</span> <span class="n">purposes</span><span class="p">)</span><span class="o">.</span> <span class="o">*/</span>
+    <span class="n">uint8_t</span> <span class="o">*</span><span class="n">stack</span><span class="p">;</span>                     <span class="o">/*</span> <span class="n">Saved</span> <span class="n">stack</span> <span class="n">pointer</span><span class="o">.</span> <span class="o">*/</span>
+
+    <span class="o">/*</span> <span class="n">etc</span><span class="o">.</span> <span class="o">*/</span>
+
+  <span class="p">}</span>
+</pre></div>
+</div>
+<p>threads/switch.h defines SWITCH_CUR and SWITCH_NEXT as the offset of
+cur and next within the stack frame (20 and 24).</p>
+<p>So, SWITCH_CUR(%esp) gives us the address of the current thread</p>
+<p>20(%esp) translates to &#8220;the contents of esp + 20&#8221;</p>
+<p>Similarly for SWITCH_NEXT</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">movl</span> <span class="n">SWITCH_CUR</span><span class="p">(</span><span class="o">%</span><span class="n">esp</span><span class="p">),</span> <span class="o">%</span><span class="n">eax</span>
+<span class="n">movl</span> <span class="o">%</span><span class="n">esp</span><span class="p">,</span> <span class="p">(</span><span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">edx</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(%eax,%edx,1) = (eax + edx*1)</p>
+<p>i.e.</p>
+<p>cur-&gt;stack = esp</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">movl</span> <span class="n">SWITCH_NEXT</span><span class="p">(</span><span class="o">%</span><span class="n">esp</span><span class="p">),</span> <span class="o">%</span><span class="n">ecx</span>
+    <span class="n">movl</span> <span class="p">(</span><span class="o">%</span><span class="n">ecx</span><span class="p">,</span><span class="o">%</span><span class="n">edx</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="o">%</span><span class="n">esp</span>
+</pre></div>
+</div>
+<p>i.e.</p>
+<p>esp = next-&gt;stack</p>
+<p>We&#8217;ve changed the stack pointer!!!</p>
+<p>Restores registers and returns:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>    <span class="n">popl</span> <span class="o">%</span><span class="n">edi</span>
+    <span class="n">popl</span> <span class="o">%</span><span class="n">esi</span>
+    <span class="n">popl</span> <span class="o">%</span><span class="n">ebp</span>
+    <span class="n">popl</span> <span class="o">%</span><span class="n">ebx</span>
+<span class="n">ret</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="switching-between-kernelspace-and-userspace">
+<h2>Switching between kernelspace and userspace<a class="headerlink" href="#switching-between-kernelspace-and-userspace" title="Permalink to this headline">¶</a></h2>
+<p>[Assumes we have discused paging and segmentation]</p>
+<p>The above applies specifically to kernel threads. In Project 2,
+you will have to implement user processes.</p>
+<p>To understand the relation between kernelspace and userspace
+in Pintos, let&#8217;s look at how physical and virtual memory is laid out</p>
+<p>Pintos only uses 64MB of memory, laid out like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mh">0x04000000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>            <span class="n">page</span> <span class="n">pool</span>             <span class="o">|</span>
+           <span class="o">|</span>             <span class="p">(</span><span class="mi">63</span> <span class="n">MB</span><span class="p">)</span>              <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+            <span class="n">vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv</span>
+
+            <span class="o">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0x00100000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0x000A0000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>        <span class="n">Kernel</span> <span class="n">code</span> <span class="o">+</span> <span class="n">data</span>        <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0x00020000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0x0000D000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>       <span class="n">initial</span> <span class="n">kernel</span> <span class="n">thread</span>      <span class="o">|</span>
+<span class="mh">0x0000E000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0x00007E00</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>            <span class="n">Boot</span> <span class="n">loader</span>           <span class="o">|</span>
+<span class="mh">0x00007C00</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+         <span class="mi">0</span> <span class="o">+----------------------------------+</span>
+</pre></div>
+</div>
+<p>(note: ommitting some parts; full map here: <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_6.html#SEC95">https://uchicago-cs.github.io/pintos/pintos_6.html#SEC95</a>)</p>
+<p>A process&#8217;s virtual memory looks like this (let&#8217;s assume it has already been loaded; we&#8217;ll discuss loading later on)</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mh">0xFFFFFFFF</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>              <span class="n">Unused</span>              <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+            <span class="n">vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv</span>
+
+            <span class="o">^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0xC4000000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>    <span class="n">Mapped</span> <span class="n">to</span> <span class="n">Physical</span> <span class="n">Memory</span>     <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+<span class="mh">0xC0000000</span> <span class="o">+----------------------------------+</span> <span class="n">PHYS_BASE</span>
+           <span class="o">|</span>            <span class="n">user</span> <span class="n">stack</span>            <span class="o">|</span>
+           <span class="o">|</span>                 <span class="o">|</span>                <span class="o">|</span>
+           <span class="o">|</span>                 <span class="o">|</span>                <span class="o">|</span>
+           <span class="o">|</span>                 <span class="n">V</span>                <span class="o">|</span>
+           <span class="o">|</span>          <span class="n">grows</span> <span class="n">downward</span>          <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>           <span class="n">grows</span> <span class="n">upward</span>           <span class="o">|</span>
+           <span class="o">|</span>                 <span class="o">^</span>                <span class="o">|</span>
+           <span class="o">|</span>                 <span class="o">|</span>                <span class="o">|</span>
+           <span class="o">|</span>                 <span class="o">|</span>                <span class="o">|</span>
+           <span class="o">+----------------------------------+</span>
+           <span class="o">|</span> <span class="n">uninitialized</span> <span class="n">data</span> <span class="n">segment</span> <span class="p">(</span><span class="n">BSS</span><span class="p">)</span> <span class="o">|</span>
+           <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>     <span class="n">initialized</span> <span class="n">data</span> <span class="n">segment</span>     <span class="o">|</span>
+           <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>           <span class="n">code</span> <span class="n">segment</span>           <span class="o">|</span>
+<span class="mh">0x08048000</span> <span class="o">+----------------------------------+</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+           <span class="o">|</span>                                  <span class="o">|</span>
+         <span class="mi">0</span> <span class="o">+----------------------------------+</span>
+</pre></div>
+</div>
+<p>This sounds like we can access kernel memory from a user process. Why not?</p>
+<p>Reminder: x86 has Privilege Levels. If PL=0 is &#8220;Supervisor&#8221; level,
+and allows running all instructions. PL&gt;0 (but typically 3) is &#8220;User&#8221;
+level and does not allow certain operations (like I/O, updating
+certain registers, etc.)</p>
+<p>For now, we can think of there being some place where &#8220;current PL&#8221; is
+specified.</p>
+<p>All pages above PHYS_BASE are set with the Supervisor bit set to 1. So, if a
+user process is running in PL=3, it cannot access that memory.</p>
+<p>When we load a program, we do the following:</p>
+<ol class="arabic simple">
+<li>Create a new kernel thread (one thread per program). The function this thread runs is the program loader. <a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L42">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L42</a>. This thread is placed on the ready list and will eventually run.</li>
+<li>Create a page table that with no mappings between 0 and 3GB, and with the physical memory mappings (with Supervisor bit set to 1)</li>
+<li>Read program from ELF file. Two segments: text and data. Use palloc to allocate pages from the page pool for these segments.</li>
+<li>Create mappings between virtual memory and physical memory for these pages.</li>
+<li>Set up stack (Project 2)</li>
+<li>Get entry point from ELF</li>
+</ol>
+<p>At this point, could use JMP to the entry point. Why not? We&#8217;re running at PL=0. Arguably, we could just &#8220;set PL to 3&#8221; before the JMP, but the mechanism is more complicated than that.</p>
+<p>In x86 architecture, we have six segment selectors (CPU registers):</p>
+<ul class="simple">
+<li>cs: Code Segment</li>
+<li>ss: Stack Segment</li>
+<li>ds: Data Segment</li>
+<li>es, fs, gs: More data</li>
+</ul>
+<p>The value of cs, ss, ds, etc. is a <em>selector</em>: an index into a table of segment descriptors. In x86 there are two tables: the Global Descriptor Table (shared by all processes) and the Local Descriptor Table (one per process). The selector determines what segment you are accessing.</p>
+<p>However, modern x86 operating systems don&#8217;t create distinct segments per process. Instead, each segment is as big as the memory, and we only use the GDT, which looks like this:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="14%" />
+<col width="27%" />
+<col width="10%" />
+<col width="24%" />
+<col width="24%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Index</td>
+<td>Description</td>
+<td>PL</td>
+<td>Base</td>
+<td>Limit</td>
+</tr>
+<tr class="row-even"><td>0</td>
+<td colspan="4">Empty</td>
+</tr>
+<tr class="row-odd"><td>1</td>
+<td colspan="4">Kernel Code | 0   | 0x00000000 | 0xFFFFFFFF</td>
+</tr>
+<tr class="row-even"><td>2</td>
+<td>Kernel Data</td>
+<td>0</td>
+<td>0x00000000</td>
+<td>0xFFFFFFFF</td>
+</tr>
+<tr class="row-odd"><td>3</td>
+<td>User Code</td>
+<td>3</td>
+<td>0x00000000</td>
+<td>0xFFFFFFFF</td>
+</tr>
+<tr class="row-even"><td>4</td>
+<td>User Data</td>
+<td>3</td>
+<td>0x00000000</td>
+<td>0xFFFFFFFF</td>
+</tr>
+<tr class="row-odd"><td>5</td>
+<td>TSS</td>
+<td colspan="3">Pointer to Task State Segment</td>
+</tr>
+</tbody>
+</table>
+<p>(note: selectors are actually addresses in memory, not 0,1,2,3, etc. We use numbers for simplicity)</p>
+<p>So, if cs is set to 1, it mean I can run privileged instructions. Similarly, if ds is set to 4, I wouldn&#8217;t be able to access pages that require PL=0.</p>
+<p><strong>Our Privilege Level is determined by the current segment selectors</strong></p>
+<p>When the computer boots, we set up the GDT just with entries 0,1,2 and run in PL=0. Later on, we set up the complete GDT (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/gdt.c#L33-L54">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/gdt.c#L33-L54</a>)</p>
+<p>So, back to the user process: we&#8217;ve set everything up, and now we need to jump to its entry point, and switch cs to segment 3 and all other selectors to segment 4. This is done by simulating a return from interrupt:</p>
+<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L69-L75">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L69-L75</a></p>
+<p>When an interrupt happens, the interrupt frame includes the EIP, ESP, and segment selectors at the time of the interrupt. So, creating an interrupt frame with the process entry point, stack pointer, and the desired selectors, and calling IRET has the effect of switching the PL and &#8220;going to userspace&#8221;.</p>
+<p>But how do we go back to PL=0 when an interrupt happens (or a system call)?</p>
+<p>Two things:</p>
+<ul class="simple">
+<li>The interrupt descriptor table includes the code segment to use when processing the interrupt (and it is set to be the kernel one). The interrupt entry point then sets the data segment selectors to the kernel ones.</li>
+<li>We also need to switch to the stack for the kernel thread associated with this process. In x86, we use a Task State Segment. Originally designed so there would be one TSS per task (keeping information about each task), but in practice there is only one TSS. When an interrupt happens, the TSS tells us what value to set the stack pointer to when going into kernel space. So, before a kernel thread &#8220;returns from interrupt&#8221; to userspace, we save that value in the TSS:</li>
+</ul>
+<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L132">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L132</a></p>
+<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/tss.c#L101-L106">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/tss.c#L101-L106</a></p>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2017, Borja Sotomayor.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.3.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
