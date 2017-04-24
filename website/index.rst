@@ -12,8 +12,8 @@ Course Staff
 
 *Office hours*: 
 
-- Mondays 4-5pm in Young 302 (open Q&A format)
-- Mondays 6pm-7pm in Young 308-B
+- Mondays 4-5pm in Young 308 (open Q&A format)
+- Mondays 6:15pm-7:15pm in Young 308-B
 - Wednesdays after class in Eckhart 120-B
 
 **TA**
