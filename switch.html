@@ -97,19 +97,34 @@
       
   <div class="section" id="how-does-thread-process-switching-work-in-pintos">
 <h1>How does thread/process switching work in Pintos?<a class="headerlink" href="#how-does-thread-process-switching-work-in-pintos" title="Permalink to this headline">¶</a></h1>
-<p>We&#8217;ll start with kernel threads, and then move on to processes.</p>
+<p>This page explains how thread switching, as well as process switching
+works in Pintos. We recommend reading it alongside the Pintos source code (the text below also includes several links to pertinent parts of the Pintos source code).</p>
+<p>We begin by reviewing how kernel threads are represented in memory, and then
+explain what happens when a kernel thread is interrupted (e.g., by
+a timer interrupt), first in the simple case where the thread isn&#8217;t preempted,
+and then in the case where we switch to a different thread. We build
+on this to then explain how context switching works with processes,
+after first explaining how we can go from userspace to kernelspace (and
+back again)</p>
 <div class="section" id="threads-in-memory">
 <h2>Threads in memory<a class="headerlink" href="#threads-in-memory" title="Permalink to this headline">¶</a></h2>
 <p>All the information for a thread is contained in a single page
-of memory (4 KB). The struct thread is stored at the bottom of the
-page, and the stack grows from the top bottom.</p>
-<p>See <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_6.html#SEC97">https://uchicago-cs.github.io/pintos/pintos_6.html#SEC97</a></p>
+of memory (4 KB in Pintos). The <code class="docutils literal"><span class="pre">thread</span></code> struct containing
+information about the thread is stored at the bottom of the
+page, and the stack grows from the top to the bottom (see
+<a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_6.html#SEC97">A.2.1 struct thread</a>
+in the Pintos documentation for more details).</p>
 <p>Suppose we have a thread that runs a function called <code class="docutils literal"><span class="pre">thread_one()</span></code>
 (i.e., when we called <code class="docutils literal"><span class="pre">thread_create</span></code>, we passed <code class="docutils literal"><span class="pre">thread_one</span></code>
-as the <code class="docutils literal"><span class="pre">function</span></code> parameter). Let&#8217;s skip how the thread is created
-for now.</p>
-<p>However, note how the first entry in the stack isn&#8217;t <code class="docutils literal"><span class="pre">thread_one</span></code>.
-It&#8217;s <code class="docutils literal"><span class="pre">kernel_thread</span></code>.</p>
+as the <code class="docutils literal"><span class="pre">function</span></code> parameter). We do not need to worry about the
+details of how the thread is created; we will simply assume it is
+running.</p>
+<p>The first entry in the stack for this thread actually isn&#8217;t
+<code class="docutils literal"><span class="pre">thread_one</span></code> but, rather, an entry for a Pintos function
+called <code class="docutils literal"><span class="pre">kernel_thread</span></code>. This function acts as a wrapper
+for the thread&#8217;s <code class="docutils literal"><span class="pre">function</span></code>, ensuring that the thread exits
+as soon as the function returns. This is the code for
+<code class="docutils literal"><span class="pre">kernel_thread</span></code>:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">/*</span> <span class="n">Function</span> <span class="n">used</span> <span class="k">as</span> <span class="n">the</span> <span class="n">basis</span> <span class="k">for</span> <span class="n">a</span> <span class="n">kernel</span> <span class="n">thread</span><span class="o">.</span> <span class="o">*/</span>
 <span class="n">static</span> <span class="n">void</span>
 <span class="n">kernel_thread</span> <span class="p">(</span><span class="n">thread_func</span> <span class="o">*</span><span class="n">function</span><span class="p">,</span> <span class="n">void</span> <span class="o">*</span><span class="n">aux</span><span class="p">)</span>
@@ -124,73 +139,108 @@ It&#8217;s <code class="docutils literal"><span class="pre">kernel_thread</span>
 </div>
 <p>That <code class="docutils literal"><span class="pre">thread_one</span></code> function may itself call other functions,
 which may call other functions, etc. The information about
-each function call is added to the stack (see <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_3.html#SEC50">https://uchicago-cs.github.io/pintos/pintos_3.html#SEC50</a>)</p>
+each function call is added to the stack (see
+<a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_3.html#SEC50">3.5 80x86 Calling Convention</a>
+in the Pintos documentation for details on the exact format for
+each stack entry).</p>
 <p>Let&#8217;s say the thread is in the middle of running function
 <code class="docutils literal"><span class="pre">foobar()</span></code>. The thread&#8217;s memory may look like this:</p>
 <img alt="_images/stack1.png" src="_images/stack1.png" />
-<p>ESP: CPU stack pointer</p>
+<p>During the execution of the thread, the CPU&#8217;s <code class="docutils literal"><span class="pre">esp</span></code> register will point to the
+bottom-most address of the stack (or the &#8220;top&#8221; of the stack).</p>
 </div>
 <div class="section" id="what-happens-during-an-interrupt">
 <h2>What happens during an interrupt<a class="headerlink" href="#what-happens-during-an-interrupt" title="Permalink to this headline">¶</a></h2>
 <p>When an interrupt happens, the CPU automatically pushes
-the following values in the stack:</p>
+the value of the following CPU registers onto the stack:</p>
 <ul class="simple">
-<li>SS: Stack Segment Selector</li>
-<li>ESP: Stack pointer</li>
-<li>EFLAGS: CPU flags</li>
-<li>CS: Code Segment Selector</li>
-<li>EIP: Instruction Pointer (Program Counter)</li>
+<li><code class="docutils literal"><span class="pre">ss</span></code>: Stack Segment Selector</li>
+<li><code class="docutils literal"><span class="pre">esp</span></code>: Stack pointer</li>
+<li><code class="docutils literal"><span class="pre">eflags</span></code>: CPU flags</li>
+<li><code class="docutils literal"><span class="pre">cs</span></code>: Code Segment Selector</li>
+<li><code class="docutils literal"><span class="pre">eip</span></code>: Instruction Pointer (i.e., the Program Counter)</li>
 </ul>
-<p>We can ignore selectors for now.</p>
-<p>It then jumps to the memory address specified for the
-interrupts in the IDT. In Pintos, the IDT is set up
-to always call intr_entry</p>
-<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L5-L39">https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L5-L39</a></p>
-<p>This code pushed additional data into the stack
-(mostly CPU registers) and sets up a call to intr_handler
-(<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.c#L345">https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.c#L345</a>)
-which has a single parameter: a pointer to a
-<code class="docutils literal"><span class="pre">struct</span> <span class="pre">intr_frame</span></code> (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.h#L19-L56">https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.h#L19-L56</a>). This struct provides convenient
-access to the interrupt stack frame.</p>
-<p>So, after an interrupt, the stack looks like this:</p>
+<p>For now, we can ignore the segment selectors. However, notice
+how the CPU saves enough information to be able to resume
+the execution of the thread: it saved the address of the next
+instruction to run (in <code class="docutils literal"><span class="pre">eip</span></code>) and a pointer to the
+top of the thread&#8217;s stack (so we can return to the exact
+chain of function calls when the interrupt happened).</p>
+<p>Next, the CPU will inspect the <a class="reference external" href="http://wiki.osdev.org/Interrupt_Descriptor_Table">Interrupt Descriptor Table</a> (IDT) and look for the entry corresponding to the interrupt that just happened. This entry
+will contain a memory location containing the <em>interrupt handler</em> for that
+interrupt, and the CPU will jump to that location.</p>
+<p>In Pintos, the IDT is actually set up to always jump to a function called
+<code class="docutils literal"><span class="pre">intr_entry</span></code> (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L5-L39">source code</a>)
+that is implemented in x86 assembly. This function pushes additional data into the stack
+(mostly CPU registers). The combination of the values pushed by the CPU and by <code class="docutils literal"><span class="pre">intr_entry</span></code> is
+called the <em>interrupt stack frame</em>, which is used to save information about the interrupted
+thread (or process) and to provide the interrupt handler with the information it needs to
+handle the interrupt.</p>
+<p><code class="docutils literal"><span class="pre">intr_entry</span></code> also sets up a call to a function called <code class="docutils literal"><span class="pre">intr_handler</span></code>
+that is implemented in C (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.c#L345">source code</a>). This function has a single parameter: a pointer to a
+<code class="docutils literal"><span class="pre">intr_frame</span></code> struct (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/interrupt.h#L19-L56">source code</a>) that encapsulates all the values in the interrupt stack frame.</p>
+<p><code class="docutils literal"><span class="pre">intr_handler</span></code> is the function that will determine what function
+to call based on the interrupt type. During Pintos&#8217;s initialization
+(in the <code class="docutils literal"><span class="pre">main</span></code> function) certain functions are associated with
+certain interrupts. For example, the <code class="docutils literal"><span class="pre">timer_init</span></code> function (
+<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/devices/timer.c#L33-L40">source code</a>, called
+from <code class="docutils literal"><span class="pre">main</span></code>) assigns the <code class="docutils literal"><span class="pre">timer_interrupt</span></code> function to handle
+interrupts from the timer.</p>
+<p>If the interrupt we&#8217;re handling is a timer interrupt, then <code class="docutils literal"><span class="pre">intr_handler</span></code>
+would call <code class="docutils literal"><span class="pre">timer_interrupt</span></code> which, in turn, would call <code class="docutils literal"><span class="pre">thread_tick</span></code>.
+At that point, the stack would look like this:</p>
 <img alt="_images/stack2.png" src="_images/stack2.png" />
-<p>And if we&#8217;re processing a timer interrupts, intr_handler would
-call timer_interrupt, which in turn would call thread_tick.</p>
-<p>If we&#8217;re not switching to another thread, these functions would
-return. When intr_handler returns, it goes back to the code
-in intr-stubs.S and &#8220;falls through&#8221; to intr_exit, which restores
-the saved values in the stack (popal, popl) and discards
-the Pintos-saved information. We&#8217;re left with only the OS-saved
-information. Then in calls iret, which restores the eip and esp
-we saved.</p>
+<p>In the case where <code class="docutils literal"><span class="pre">thread_tick</span></code> does not preempt the running
+thread, it would return to <code class="docutils literal"><span class="pre">timer_interrupt</span></code>, which will
+return to <code class="docutils literal"><span class="pre">intr_handler</span></code>, which will return to the
+<code class="docutils literal"><span class="pre">intr_entry</span></code> function. The assembly code for this
+function &#8220;falls through&#8221; to <code class="docutils literal"><span class="pre">intr_exit</span></code>, which restores
+the saved values in the stack (using the <code class="docutils literal"><span class="pre">popal</span></code>, <code class="docutils literal"><span class="pre">popl</span></code> instructions)
+and discards the Pintos-saved information from the interrupt stack
+frame, leaving only the values that were automatically saved
+by the CPU. At this point, we run the assembly instruction <code class="docutils literal"><span class="pre">iret</span></code>.
+This instruction will restore the values stored in the interrupt
+stack frame created by the CPU (<code class="docutils literal"><span class="pre">ss</span></code>, <code class="docutils literal"><span class="pre">esp</span></code>, <code class="docutils literal"><span class="pre">eflags</span></code>, <code class="docutils literal"><span class="pre">cs</span></code>, and
+<code class="docutils literal"><span class="pre">eip</span></code>), restoring the state of the CPU to the point
+where the interrupt happened (thus doing an &#8220;Interrupt RETurn&#8221;).</p>
 </div>
 <div class="section" id="what-happens-during-a-thread-switch">
 <h2>What happens during a thread switch<a class="headerlink" href="#what-happens-during-a-thread-switch" title="Permalink to this headline">¶</a></h2>
-<p>If a thread has used up its timeslice, thread_tick will call
-intr_yield_on_return. <em>This doesn&#8217;t yield at that point</em>. Instead,
-it modifies a flag to let the interrupt handler that, before
-returning from the interrupt, it should switch to a different thread.</p>
-<p>So, after thread_tick and timer_interrupt return, intr_handler will
-call thread_yield, which calls schedule. schedule picks the next
-thread to run and calls switch_threads with two parameters: cur
-(the current thread) and next (the next thread to run)</p>
+<p>If a thread has used up its timeslice, <code class="docutils literal"><span class="pre">thread_tick</span></code> will call
+the function <code class="docutils literal"><span class="pre">intr_yield_on_return</span></code>. However, <em>this doesn&#8217;t yield
+to the next thread at that point</em>. Instead, it modifies a flag to let
+the interrupt handler that, before returning from the interrupt, it
+should perform a context switch to a different thread (so that, when
+we return from the interrupt, we do so with the context, i.e., stack
+and program counter, of a different thread).</p>
+<p>So, after <code class="docutils literal"><span class="pre">thread_tick</span></code> and <code class="docutils literal"><span class="pre">timer_interrupt</span></code> return, <code class="docutils literal"><span class="pre">intr_handler</span></code> will
+call <code class="docutils literal"><span class="pre">thread_yield</span></code>, which will call <code class="docutils literal"><span class="pre">schedule</span></code>. <code class="docutils literal"><span class="pre">schedule</span></code> picks the next
+thread to run and calls a function <code class="docutils literal"><span class="pre">switch_threads</span></code>, implemented
+in x86 assembly, with two parameters: <code class="docutils literal"><span class="pre">cur</span></code> (a pointer to the <code class="docutils literal"><span class="pre">thread</span></code>
+struct of the current thread, i.e., the one that is being preempted) and
+<code class="docutils literal"><span class="pre">next</span></code> (a pointer to the <code class="docutils literal"><span class="pre">thread</span></code> struct of the next thread to run).</p>
+<p>So, the stack will look like this:</p>
 <img alt="_images/stack3.png" src="_images/stack3.png" />
-<p>switch_threads is implemented in switch.S</p>
-<p>The key to understanding switch_threads is to first understand that,
+<p><code class="docutils literal"><span class="pre">switch_threads</span></code> is implemented in <code class="docutils literal"><span class="pre">switch.S</span></code> (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/switch.S">source code</a>)</p>
+<p>The key to understanding <code class="docutils literal"><span class="pre">switch_threads</span></code> is to first understand that,
 if we&#8217;re switching to another thread, that other thread must&#8217;ve also
-been running switch_threads when it was preempted. In fact, a thread
+been running <code class="docutils literal"><span class="pre">switch_threads</span></code> when it was preempted. In fact, a thread
 that voluntarily or involuntarily yielded the CPU will always have
 a stack that looks like one of the following:</p>
 <img alt="_images/stack4.png" src="_images/stack4.png" />
-<p>Intuition behind switch_threads: esp is the CPU stack pointer. It currently
-points to the stack of the currently running thread, but if we switch
-it to point to the other thread, we will have yielded control to that thread.</p>
-<p>Let&#8217;s take a closer look at what happens inside switch_threads.</p>
-<p>Right after calling switch_threads, the bottom of the stack will
+<p>The intuition behind <code class="docutils literal"><span class="pre">switch_threads</span></code> is that, to switch to another thread,
+we just need to &#8220;switch the stacks&#8221; (because every thread is guaranteed
+to be running <code class="docutils literal"><span class="pre">switch_threads</span></code> at the point it was preempted), and we can
+do this simply by changing the value of <code class="docutils literal"><span class="pre">esp</span></code>. Let&#8217;s take a closer look at
+how this happens.</p>
+<p>Right after calling <code class="docutils literal"><span class="pre">switch_threads</span></code>, the bottom of the stack will
 look like this:</p>
 <img alt="_images/stack5.png" src="_images/stack5.png" />
-<p>First, we need to save some registers (this is just a requirement
-of the x86 architecture):</p>
+<p>The address of the start of the <code class="docutils literal"><span class="pre">switch_threads</span></code> stack frame (<code class="docutils literal"><span class="pre">0x0C00</span></code>)
+is arbitrary and has no deep significance. However, all the other values shown
+would be consistent with the <code class="docutils literal"><span class="pre">switch_threads</span></code> stack frame starting at <code class="docutils literal"><span class="pre">0x0C00</span></code>.</p>
+<p>First of all, <code class="docutils literal"><span class="pre">switch_threads</span></code> needs to save some registers (this is simply
+required by the x86 architecture):</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pushl</span> <span class="o">%</span><span class="n">ebx</span>
 <span class="n">pushl</span> <span class="o">%</span><span class="n">ebp</span>
 <span class="n">pushl</span> <span class="o">%</span><span class="n">esi</span>
@@ -199,15 +249,8 @@ of the x86 architecture):</p>
 </div>
 <p>And our stack will now look like this:</p>
 <img alt="_images/stack6.png" src="_images/stack6.png" />
-<p>Note: offsets from esp</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">globl</span> <span class="n">thread_stack_ofs</span>
-        <span class="n">mov</span> <span class="n">thread_stack_ofs</span><span class="p">,</span> <span class="o">%</span><span class="n">edx</span>
-</pre></div>
-</div>
-<p>threads/thread.c:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">uint32_t</span> <span class="n">thread_stack_ofs</span> <span class="o">=</span> <span class="n">offsetof</span> <span class="p">(</span><span class="n">struct</span> <span class="n">thread</span><span class="p">,</span> <span class="n">stack</span><span class="p">);</span>
-</pre></div>
-</div>
+<p>Before we see what happens next, recall that the <code class="docutils literal"><span class="pre">thread</span></code> struct
+stores information about each thread:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">struct</span> <span class="n">thread</span>
   <span class="p">{</span>
     <span class="o">/*</span> <span class="n">Owned</span> <span class="n">by</span> <span class="n">thread</span><span class="o">.</span><span class="n">c</span><span class="o">.</span> <span class="o">*/</span>
@@ -221,42 +264,77 @@ of the x86 architecture):</p>
   <span class="p">}</span>
 </pre></div>
 </div>
-<p>threads/switch.h defines SWITCH_CUR and SWITCH_NEXT as the offset of
-cur and next within the stack frame (20 and 24).</p>
-<p>So, SWITCH_CUR(%esp) gives us the address of the current thread</p>
-<p>20(%esp) translates to &#8220;the contents of esp + 20&#8221;</p>
-<p>Similarly for SWITCH_NEXT</p>
+<p>Notice how it contains a <code class="docutils literal"><span class="pre">stack</span></code> field. This field is used to save
+the value of <code class="docutils literal"><span class="pre">esp</span></code> when a thread is preempted. However, in x86 assembly
+we can&#8217;t just write <code class="docutils literal"><span class="pre">t-&gt;stack</span></code>. Instead, if we want to access that value
+in the struct, we need the address of the struct in memory <em>and</em>
+the offset (in bytes) of the field we want to access. This is defined
+in <code class="docutils literal"><span class="pre">thread.c</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">uint32_t</span> <span class="n">thread_stack_ofs</span> <span class="o">=</span> <span class="n">offsetof</span> <span class="p">(</span><span class="n">struct</span> <span class="n">thread</span><span class="p">,</span> <span class="n">stack</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Since we need to use this value in <code class="docutils literal"><span class="pre">switch_threads</span></code>, we load it
+into register <code class="docutils literal"><span class="pre">edx</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">globl</span> <span class="n">thread_stack_ofs</span>
+        <span class="n">mov</span> <span class="n">thread_stack_ofs</span><span class="p">,</span> <span class="o">%</span><span class="n">edx</span>
+</pre></div>
+</div>
+<p>Next, <code class="docutils literal"><span class="pre">switch.h</span></code> defines SWITCH_CUR and SWITCH_NEXT as the offset of
+cur and next within the stack frame (20 and 24; see how this matches
+with what is shown in the earlier figure). In x86 assembly, the
+expression <code class="docutils literal"><span class="pre">SWITCH_CUR(%esp)</span></code> becomes <code class="docutils literal"><span class="pre">20(%esp)</span></code>, which
+translates to the memory address <code class="docutils literal"><span class="pre">esp</span> <span class="pre">+</span> <span class="pre">20</span></code>. In other words,
+this gives us the address of the current thread (<code class="docutils literal"><span class="pre">cur</span></code>).</p>
+<p>Similary, <code class="docutils literal"><span class="pre">SWITCH_NEXT(%esp)</span></code> gives us the address of the
+<code class="docutils literal"><span class="pre">next</span></code> thread.</p>
+<p>So, the following piece of assembly code:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">movl</span> <span class="n">SWITCH_CUR</span><span class="p">(</span><span class="o">%</span><span class="n">esp</span><span class="p">),</span> <span class="o">%</span><span class="n">eax</span>
 <span class="n">movl</span> <span class="o">%</span><span class="n">esp</span><span class="p">,</span> <span class="p">(</span><span class="o">%</span><span class="n">eax</span><span class="p">,</span><span class="o">%</span><span class="n">edx</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">movl</span> <span class="n">SWITCH_NEXT</span><span class="p">(</span><span class="o">%</span><span class="n">esp</span><span class="p">),</span> <span class="o">%</span><span class="n">ecx</span>
+<span class="n">movl</span> <span class="p">(</span><span class="o">%</span><span class="n">ecx</span><span class="p">,</span><span class="o">%</span><span class="n">edx</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="o">%</span><span class="n">esp</span>
 </pre></div>
 </div>
-<p>(%eax,%edx,1) = (eax + edx*1)</p>
-<p>i.e.</p>
-<p>cur-&gt;stack = esp</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">movl</span> <span class="n">SWITCH_NEXT</span><span class="p">(</span><span class="o">%</span><span class="n">esp</span><span class="p">),</span> <span class="o">%</span><span class="n">ecx</span>
-    <span class="n">movl</span> <span class="p">(</span><span class="o">%</span><span class="n">ecx</span><span class="p">,</span><span class="o">%</span><span class="n">edx</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="o">%</span><span class="n">esp</span>
+<p>Is the equivalent of doing this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cur</span><span class="o">-&gt;</span><span class="n">stack</span> <span class="o">=</span> <span class="n">esp</span><span class="p">;</span>
+<span class="n">esp</span> <span class="o">=</span> <span class="nb">next</span><span class="o">-&gt;</span><span class="n">stack</span><span class="p">;</span>
 </pre></div>
 </div>
-<p>i.e.</p>
-<p>esp = next-&gt;stack</p>
-<p>We&#8217;ve changed the stack pointer!!!</p>
-<p>Restores registers and returns:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>    <span class="n">popl</span> <span class="o">%</span><span class="n">edi</span>
-    <span class="n">popl</span> <span class="o">%</span><span class="n">esi</span>
-    <span class="n">popl</span> <span class="o">%</span><span class="n">ebp</span>
-    <span class="n">popl</span> <span class="o">%</span><span class="n">ebx</span>
+<p>In other words, we save the stack pointer of the current thread,
+and set <code class="docutils literal"><span class="pre">esp</span></code> to point to the (previously saved) stack
+pointer of the next thread to run.</p>
+<p>Once we&#8217;ve done this, we have switched threads, and all the remains
+is to restore the registers we had previously pushed onto the stack,
+and return from <code class="docutils literal"><span class="pre">switch_threads</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">popl</span> <span class="o">%</span><span class="n">edi</span>
+<span class="n">popl</span> <span class="o">%</span><span class="n">esi</span>
+<span class="n">popl</span> <span class="o">%</span><span class="n">ebp</span>
+<span class="n">popl</span> <span class="o">%</span><span class="n">ebx</span>
 <span class="n">ret</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="switching-between-kernelspace-and-userspace">
 <h2>Switching between kernelspace and userspace<a class="headerlink" href="#switching-between-kernelspace-and-userspace" title="Permalink to this headline">¶</a></h2>
-<p>[Assumes we have discused paging and segmentation]</p>
-<p>The above applies specifically to kernel threads. In Project 2,
-you will have to implement user processes.</p>
-<p>To understand the relation between kernelspace and userspace
-in Pintos, let&#8217;s look at how physical and virtual memory is laid out</p>
-<p>Pintos only uses 64MB of memory, laid out like this:</p>
+<p>Note: The following section assumes knowledge of how paging and
+segmentation works (although not necessarily in an x86 architecture)</p>
+<p>To understand how context switching works with user processes, we
+first need to understand how we can go from running a process
+to running kernel code (which will have more privileges than
+the user process&#8217;s code). Understanding
+this is useful not just for context switches, but for understanding
+other aspects of the OS, like interrupt handling and system calls
+(since, in both these cases, the user process must temporarily
+yield control to the kernel to handle the interrupt or system call).</p>
+<p>First of all, the x86 architecture has four Privilege Levels (PL),
+numbered from 0 to 3. When PL=0, we are running in the &#8220;Supervisor&#8221; level, which
+allows running all instructions. A PL greater than 0 (typically 3)
+is the &#8220;User&#8221; level and does not allow certain operations (like I/O,
+updating certain registers, etc.). For now, we can assume that the
+&#8220;current PL&#8221; is stored in a CPU register (this is not entirely
+accurate, but will be enough for now, specially since the actual
+way that PLs are handled in an x86 architecture is pretty elaborate).</p>
+<p>Now, let&#8217;s look at how physical and virtual memory is laid out. Pintos
+only uses 64MB of physical memory, laid out like this:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="mh">0x04000000</span> <span class="o">+----------------------------------+</span>
            <span class="o">|</span>                                  <span class="o">|</span>
            <span class="o">|</span>            <span class="n">page</span> <span class="n">pool</span>             <span class="o">|</span>
@@ -289,8 +367,9 @@ in Pintos, let&#8217;s look at how physical and virtual memory is laid out</p>
          <span class="mi">0</span> <span class="o">+----------------------------------+</span>
 </pre></div>
 </div>
-<p>(note: ommitting some parts; full map here: <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_6.html#SEC95">https://uchicago-cs.github.io/pintos/pintos_6.html#SEC95</a>)</p>
-<p>A process&#8217;s virtual memory looks like this (let&#8217;s assume it has already been loaded; we&#8217;ll discuss loading later on)</p>
+<p>The above figure omits some parts of memory that are not relevant to this
+discussion. The full memory map can be found in <a class="reference external" href="https://uchicago-cs.github.io/pintos/pintos_6.html#SEC95">A.1.4 Physical Memory Map</a>)</p>
+<p>A process&#8217;s virtual memory looks like this (let&#8217;s assume it has already been loaded; we&#8217;ll discuss loading later on):</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="mh">0xFFFFFFFF</span> <span class="o">+----------------------------------+</span>
            <span class="o">|</span>                                  <span class="o">|</span>
            <span class="o">|</span>              <span class="n">Unused</span>              <span class="o">|</span>
@@ -332,34 +411,42 @@ in Pintos, let&#8217;s look at how physical and virtual memory is laid out</p>
          <span class="mi">0</span> <span class="o">+----------------------------------+</span>
 </pre></div>
 </div>
-<p>This sounds like we can access kernel memory from a user process. Why not?</p>
-<p>Reminder: x86 has Privilege Levels. If PL=0 is &#8220;Supervisor&#8221; level,
-and allows running all instructions. PL&gt;0 (but typically 3) is &#8220;User&#8221;
-level and does not allow certain operations (like I/O, updating
-certain registers, etc.)</p>
-<p>For now, we can think of there being some place where &#8220;current PL&#8221; is
-specified.</p>
-<p>All pages above PHYS_BASE are set with the Supervisor bit set to 1. So, if a
-user process is running in PL=3, it cannot access that memory.</p>
-<p>When we load a program, we do the following:</p>
+<p>The memory below <code class="docutils literal"><span class="pre">PHYS_BASE</span></code> is <em>userspace</em> (the memory used by the user
+process) and the memory above <code class="docutils literal"><span class="pre">PHYS_BASE</span></code> is <em>kernelspace</em>
+(the memory used by the kernel which, in Pintos, is just a direct mapping
+to the full 64MB of physical memory).</p>
+<p>Note: The terms &#8220;userspace&#8221; and &#8220;kernelspace&#8221; (and &#8220;user land&#8221; and &#8220;kernel
+land&#8221;) are also often used to refer to &#8220;running with user privileges (PL=3)&#8221;
+and &#8220;running with supervisor privileges (PL=0)&#8221;.</p>
+<p>However, the above memory map makes it seem like every user process
+has unfettered access to the entire physical memory (which would seem to
+defeat the memory protection provided by virtual memory). However,
+all the mappings above <code class="docutils literal"><span class="pre">PHYS_BASE</span></code> are configured to require PL=0:
+if a user process (running at PL=3) tries to access them, a page
+fault will happen.</p>
+<p>The <em>program loader</em> is the part of the OS in charge of taking
+an executable file, and loading it into memory, creating a virtual
+memory map like the one above. In Pintos, the program loader
+is already provided for you, although you will have to tweak
+it in the projects. It does the following:</p>
 <ol class="arabic simple">
-<li>Create a new kernel thread (one thread per program). The function this thread runs is the program loader. <a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L42">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L42</a>. This thread is placed on the ready list and will eventually run.</li>
-<li>Create a page table that with no mappings between 0 and 3GB, and with the physical memory mappings (with Supervisor bit set to 1)</li>
-<li>Read program from ELF file. Two segments: text and data. Use palloc to allocate pages from the page pool for these segments.</li>
-<li>Create mappings between virtual memory and physical memory for these pages.</li>
-<li>Set up stack (Project 2)</li>
-<li>Get entry point from ELF</li>
+<li>It creates a new kernel thread (<a class="reference external" href="actualprogramloader.https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L42">source code</a>). In fact, Pintos has a 1-1 mapping between user processes and kernel threads (and does not allow for multiple threads within a process). This thread is placed on the ready list and will eventually run.</li>
+<li>Once the thread starts running, it creates a page table with no mappings between 0 and 3GB, and with the physical memory mappings between 3GB and 3GB+64MB (requiring PL=0 to access the memory addresses in that range)</li>
+<li>The program loaded then reads the actual program from an ELF executable file. In particular, it loads a text (code) segment and a data segment, allocating pages from the page pool for them, and creating mappings between virtual memory and physical memory for these pages.</li>
+<li>It sets up the stack for the process (you will be doing this in Project 2)</li>
+<li>It obtains the &#8220;entry point&#8221; from the ELF file (i.e., &#8220;where does the program start running?&#8221;)</li>
 </ol>
-<p>At this point, could use JMP to the entry point. Why not? We&#8217;re running at PL=0. Arguably, we could just &#8220;set PL to 3&#8221; before the JMP, but the mechanism is more complicated than that.</p>
-<p>In x86 architecture, we have six segment selectors (CPU registers):</p>
+<p>At this point, we could just use the x86 <code class="docutils literal"><span class="pre">JMP</span></code> instruction to jump directly to the entry point. However, we&#8217;re running in PL=0, and we want the process to run in PL=3. While, conceptually, all we need to do is something like &#8220;Switch to PL=3 and JMP&#8221;, the actual mechanism is more complicated than that, involving the x86 segmentation functionality.</p>
+<p>In particular, the x86 architecture has six CPU registers known as <em>segment selectors</em>:</p>
 <ul class="simple">
-<li>cs: Code Segment</li>
-<li>ss: Stack Segment</li>
-<li>ds: Data Segment</li>
-<li>es, fs, gs: More data</li>
+<li><code class="docutils literal"><span class="pre">cs</span></code>: Code Segment</li>
+<li><code class="docutils literal"><span class="pre">ss</span></code>: Stack Segment</li>
+<li><code class="docutils literal"><span class="pre">ds</span></code>: Data Segment</li>
+<li><code class="docutils literal"><span class="pre">es</span></code>, <code class="docutils literal"><span class="pre">fs</span></code>, <code class="docutils literal"><span class="pre">gs</span></code>: More data segments.</li>
 </ul>
-<p>The value of cs, ss, ds, etc. is a <em>selector</em>: an index into a table of segment descriptors. In x86 there are two tables: the Global Descriptor Table (shared by all processes) and the Local Descriptor Table (one per process). The selector determines what segment you are accessing.</p>
-<p>However, modern x86 operating systems don&#8217;t create distinct segments per process. Instead, each segment is as big as the memory, and we only use the GDT, which looks like this:</p>
+<p>The value of <code class="docutils literal"><span class="pre">cs</span></code>, <code class="docutils literal"><span class="pre">ss</span></code>, <code class="docutils literal"><span class="pre">ds</span></code>, etc. is a <em>selector</em>: an index into a table of segment descriptors, where a descriptor contains information about a single segment (including, for example, the base and limit of that segment). In x86 there are two tables: the <a class="reference external" href="http://wiki.osdev.org/Global_Descriptor_Table">Global Descriptor Table</a> (shared by all processes) and the Local Descriptor Table (one per process), and a selector can point to an entry in either table.</p>
+<p>However, modern x86 operating systems don&#8217;t create distinct segments per process. Instead, they create <em>global segment descriptors</em> (in the GDT) which define segments as big as the entire virtual memory space. So, they do not use segmentation (in the sense of creating clearly delimited code, data and stack segments per process), but they do use the x86 segmentation functionality because it will be required for switching between Privilege Levels. In particular, the x86 GDT/LDT includes a field that specifies the Privilege Level at which we are running when using a given segment. So, if <code class="docutils literal"><span class="pre">cs</span></code> contains a selector for a segment with PL=0, we will be able to run instructions that require PL=0.</p>
+<p>So, a modern x86 operating system will often have a GDT with two code segments (one for PL=0 and another for PL=3), and two data segments (one for PL=0 and another for PL=3). The data segments are also used for the stack segment. In Pintos, the GDT looks like this:</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="14%" />
@@ -379,7 +466,10 @@ user process is running in PL=3, it cannot access that memory.</p>
 <td colspan="4">Empty</td>
 </tr>
 <tr class="row-odd"><td>1</td>
-<td colspan="4">Kernel Code | 0   | 0x00000000 | 0xFFFFFFFF</td>
+<td>Kernel Code</td>
+<td>0</td>
+<td>0x00000000</td>
+<td>0xFFFFFFFF</td>
 </tr>
 <tr class="row-even"><td>2</td>
 <td>Kernel Data</td>
@@ -405,21 +495,27 @@ user process is running in PL=3, it cannot access that memory.</p>
 </tr>
 </tbody>
 </table>
-<p>(note: selectors are actually addresses in memory, not 0,1,2,3, etc. We use numbers for simplicity)</p>
-<p>So, if cs is set to 1, it mean I can run privileged instructions. Similarly, if ds is set to 4, I wouldn&#8217;t be able to access pages that require PL=0.</p>
-<p><strong>Our Privilege Level is determined by the current segment selectors</strong></p>
-<p>When the computer boots, we set up the GDT just with entries 0,1,2 and run in PL=0. Later on, we set up the complete GDT (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/gdt.c#L33-L54">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/gdt.c#L33-L54</a>)</p>
-<p>So, back to the user process: we&#8217;ve set everything up, and now we need to jump to its entry point, and switch cs to segment 3 and all other selectors to segment 4. This is done by simulating a return from interrupt:</p>
-<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L69-L75">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L69-L75</a></p>
-<p>When an interrupt happens, the interrupt frame includes the EIP, ESP, and segment selectors at the time of the interrupt. So, creating an interrupt frame with the process entry point, stack pointer, and the desired selectors, and calling IRET has the effect of switching the PL and &#8220;going to userspace&#8221;.</p>
-<p>But how do we go back to PL=0 when an interrupt happens (or a system call)?</p>
-<p>Two things:</p>
+<p>Note: selectors are actually addresses in memory, not 0, 1, 2, 3, etc. but we will use indexes for simplicity. You can ignore the TSS entry for now.</p>
+<p>When the computer boots, Pintos sets up the GDT just with entries 0, 1, 2 and runs in PL=0. Later on, we set up the complete GDT (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/gdt.c#L33-L54">source code</a>).</p>
+<p>So, earlier we said that we could think of the &#8220;current PL&#8221; as being stored in a CPU register, and that was partially true. In fact, <strong>our Privilege Level is determined by the current segment selectors</strong>. For example, if <code class="docutils literal"><span class="pre">cs</span></code> is set to 1, it means I can run privileged instructions. Similarly, if <code class="docutils literal"><span class="pre">ds</span></code> is set to 4, I wouldn&#8217;t be able to access pages that require PL=0.</p>
+<p>So, back to the program loader (which is part of the kernel and, thus, would be running with code segment 1 and data segment 2). We&#8217;ve set everything up, and now we need to jump to the program&#8217;s entry point, while also switching <code class="docutils literal"><span class="pre">cs</span></code> to segment 3 and all other selectors to segment 4. This is done by <em>simulating</em> a return from interrupt (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L69-L75">source code</a>). Remember that, as we saw earlier, an interrupt causes the CPU to automatically push the following registers into the stack:</p>
 <ul class="simple">
-<li>The interrupt descriptor table includes the code segment to use when processing the interrupt (and it is set to be the kernel one). The interrupt entry point then sets the data segment selectors to the kernel ones.</li>
-<li>We also need to switch to the stack for the kernel thread associated with this process. In x86, we use a Task State Segment. Originally designed so there would be one TSS per task (keeping information about each task), but in practice there is only one TSS. When an interrupt happens, the TSS tells us what value to set the stack pointer to when going into kernel space. So, before a kernel thread &#8220;returns from interrupt&#8221; to userspace, we save that value in the TSS:</li>
+<li><code class="docutils literal"><span class="pre">ss</span></code>: Stack Segment Selector</li>
+<li><code class="docutils literal"><span class="pre">esp</span></code>: Stack pointer</li>
+<li><code class="docutils literal"><span class="pre">eflags</span></code>: CPU flags</li>
+<li><code class="docutils literal"><span class="pre">cs</span></code>: Code Segment Selector</li>
+<li><code class="docutils literal"><span class="pre">eip</span></code>: Instruction Pointer</li>
 </ul>
-<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L132">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L132</a></p>
-<p><a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/tss.c#L101-L106">https://github.com/uchicago-cs/pintos/blob/master/src/userprog/tss.c#L101-L106</a></p>
+<p>Which are then restored when we run the x86 instruction <code class="docutils literal"><span class="pre">IRET</span></code>. So, to perform the operation &#8220;jump and change the Privilege Level&#8221;, all we need to do is create an interrupt stack frame with the entry point of the program in <code class="docutils literal"><span class="pre">eip```and</span> <span class="pre">the</span> <span class="pre">PL=3</span> <span class="pre">segments</span> <span class="pre">in</span> <span class="pre">``ss</span></code> and <code class="docutils literal"><span class="pre">cs</span></code>. In Pintos, the interrupt frame we create (before calling <code class="docutils literal"><span class="pre">IRET</span></code>) contains the above registers, as well the OS-added ones that we referred to earlier when explaining interrupts. This includes the value of <code class="docutils literal"><span class="pre">ds</span></code>, which will be <a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L57">restored</a> in <code class="docutils literal"><span class="pre">intr_exit</span></code>.</p>
+<p>However, this mechanism won&#8217;t work if we want to switch from PL=3 to PL=0 (e.g., when an interrupt or a system call happens). This is because <code class="docutils literal"><span class="pre">IRET</span></code> will not allow returning from one privilege level to a more privileged level (it must always involve returning to a privilege level equal or less privileged than the current one). This makes sense: otherwise, a user process could grant itself PL=0 privileges by running IRET in the manner described above.</p>
+<p>Instead, when an interrupt or system call happens, the interrupt descriptor table specifies the code segment to use when processing the interrupt (and it is usually set to be the kernel segment). The interrupt entry point then <a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/threads/intr-stubs.S#L29-L31">sets the data segment selectors</a> to the kernel ones.</p>
+<p>However, we also need to switch to the stack for the kernel thread associated with this process. In x86, we use a <a class="reference external" href="http://wiki.osdev.org/Task_State_Segment">Task State Segment</a>. This was a data structure that was originally designed to keep track of each task in the operating system, meaning there would be one TSS per task. The TSS stores many values, including the new value of <code class="docutils literal"><span class="pre">esp</span></code> when a user process yields control to the kernel. This is something we need to keep track of because, when running in the kernel, we want to use the kernel thread&#8217;s stack, not the user process&#8217;s stack.</p>
+<p>However, modern x86 operating systems do not use one TSS per process and, instead create only one TSS (since we only need to store the stack pointer of the kernel thread corresponding to the current user process). When an interrupt happens, the CPU checks the TSS and sets <code class="docutils literal"><span class="pre">esp</span></code> to the stack pointer stored in the TSS.</p>
+</div>
+<div class="section" id="switching-between-processes">
+<h2>Switching between processes<a class="headerlink" href="#switching-between-processes" title="Permalink to this headline">¶</a></h2>
+<p>Now that we&#8217;ve seen all of the above, it turns out that process switching is simply a combination of thread switching and and switching between kernelspace and userspace. Basically, when a process is running, a timer interrupt will yield control of the CPU back to the kernel, which will result in the interrupt handling procedure we described earlier (eventually resulting in a call to <code class="docutils literal"><span class="pre">thread_tick</span></code>). At that point, if we preempt the current thread (and its associated process), we switch to a different kernel thread as described earlier and, if this kernel thread is associated with a process, we switch back to userspace.</p>
+<p>The main difference is that switching to a new process will also involve calling <code class="docutils literal"><span class="pre">process_activate</span></code> from <code class="docutils literal"><span class="pre">thread_schedule_tail</span></code> (a function that is run <em>after</em> <code class="docutils literal"><span class="pre">switch_threads</span></code>, but before returning from the interrupt handler). <code class="docutils literal"><span class="pre">process_activate</span></code> (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/process.c#L119-L133">source code</a>) updates the CPU&#8217;s <code class="docutils literal"><span class="pre">cr3</span></code> register to <a class="reference external" href="http://wiki.osdev.org/Setting_Up_Paging">point to the page directory</a> for the process that is now running, and also saves the value of <code class="docutils literal"><span class="pre">esp</span></code> to the TSS (<a class="reference external" href="https://github.com/uchicago-cs/pintos/blob/master/src/userprog/tss.c#L101-L106">source code</a>).</p>
 </div>
 </div>
 
