@@ -209,7 +209,7 @@ where the interrupt happened (thus doing an &#8220;Interrupt RETurn&#8221;).</p>
 <p>If a thread has used up its timeslice, <code class="docutils literal"><span class="pre">thread_tick</span></code> will call
 the function <code class="docutils literal"><span class="pre">intr_yield_on_return</span></code>. However, <em>this doesn&#8217;t yield
 to the next thread at that point</em>. Instead, it modifies a flag to let
-the interrupt handler that, before returning from the interrupt, it
+the interrupt handler know that, before returning from the interrupt, it
 should perform a context switch to a different thread (so that, when
 we return from the interrupt, we do so with the context, i.e., stack
 and program counter, of a different thread).</p>
