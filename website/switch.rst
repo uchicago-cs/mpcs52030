@@ -133,7 +133,7 @@ What happens during a thread switch
 If a thread has used up its timeslice, ``thread_tick`` will call
 the function ``intr_yield_on_return``. However, *this doesn't yield 
 to the next thread at that point*. Instead, it modifies a flag to let 
-the interrupt handler that, before returning from the interrupt, it 
+the interrupt handler know that, before returning from the interrupt, it 
 should perform a context switch to a different thread (so that, when
 we return from the interrupt, we do so with the context, i.e., stack
 and program counter, of a different thread).
