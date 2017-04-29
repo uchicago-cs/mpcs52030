@@ -242,7 +242,7 @@ In other words, we save the stack pointer of the current thread,
 and set ``esp`` to point to the (previously saved) stack
 pointer of the next thread to run.
 
-Once we've done this, we have switched threads, and all the remains
+Once we've done this, we have switched threads, and all that remains
 is to restore the registers we had previously pushed onto the stack,
 and return from ``switch_threads``::
 

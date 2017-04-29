@@ -302,7 +302,7 @@ this gives us the address of the current thread (<code class="docutils literal">
 <p>In other words, we save the stack pointer of the current thread,
 and set <code class="docutils literal"><span class="pre">esp</span></code> to point to the (previously saved) stack
 pointer of the next thread to run.</p>
-<p>Once we&#8217;ve done this, we have switched threads, and all the remains
+<p>Once we&#8217;ve done this, we have switched threads, and all that remains
 is to restore the registers we had previously pushed onto the stack,
 and return from <code class="docutils literal"><span class="pre">switch_threads</span></code>:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">popl</span> <span class="o">%</span><span class="n">edi</span>
