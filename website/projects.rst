@@ -54,6 +54,11 @@ Project 2: User Programs
 
 See `Project 2: User Programs <https://uchicago-cs.github.io/pintos/pintos_3.html>`_ in the Pintos documentation.
 
+Notes:
+
+- Make sure you use :download:`our design document template <userprog.tmpl>` (not
+  the one linked from the Pintos documentation).
+
 Project 3: Virtual Memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
