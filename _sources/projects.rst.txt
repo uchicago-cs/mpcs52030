@@ -58,6 +58,8 @@ Notes:
 
 - Make sure you use :download:`our design document template <userprog.tmpl>` (not
   the one linked from the Pintos documentation).
+- Please include a copy of file ``src/userprog/build/grade`` (produced by ``make grade``),
+  renamed to ``GRADE_REPORT`` inside your ``src/userprog`` directory.
 
 Project 3: Virtual Memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~
